@@ -1,6 +1,9 @@
-# 📓 Notebook Summary: European Weather Prediction EDA & Feature Engineering
+# 📓 Notebook Summary: European Weather Prediction — EDA, Feature Engineering & Neural Network
 
-**File:** `notebooks/Weather_Prediction_Full_Standalone.ipynb`  
+**Files:**  
+- `notebooks/weather_prediction_eda_feature_engineering.ipynb` — Week 2: EDA & Feature Engineering  
+- `notebooks/weather_prediction_neural_network.ipynb` — **Week 3: MLP Neural Network** *(NEW)*  
+
 **Course:** Neural Networks & Deep Learning  
 **Dataset:** European Climate Assessment & Dataset (ECA&D) / Zenodo  
 **GitHub:** [github.com/subhashthakurcode/Tech-405-Project](https://github.com/subhashthakurcode/Tech-405-Project)  
@@ -158,8 +161,68 @@ cd Tech-405-Project
 # Install dependencies
 pip install -r requirements.txt
 
-# Open the notebook
-jupyter lab notebooks/Weather_Prediction_Full_Standalone.ipynb
+# Open the EDA notebook (Week 2)
+jupyter lab notebooks/weather_prediction_eda_feature_engineering.ipynb
+
+# Open the Neural Network notebook (Week 3)
+jupyter lab notebooks/weather_prediction_neural_network.ipynb
 ```
 
-> **Note:** The notebook is already fully executed — all cell outputs, tables, and plots are pre-populated and visible without re-running.
+> **Note:** Both notebooks are fully executable. Run cells top-to-bottom; all outputs, figures, and metrics will be generated automatically.
+
+---
+
+## 🧠 Week 3 — Neural Network Implementation
+
+### Notebook: `weather_prediction_neural_network.ipynb`
+
+**Task:** Binary Classification — Basel Picnic Weather Suitability  
+**Model:** Multi-Layer Perceptron (MLP) in PyTorch  
+
+### Architecture: `WeatherMLP`
+
+```
+Input (169 features) 
+  → Linear(169→256) → BatchNorm1d → GELU → Dropout(0.3)
+  → Linear(256→128) → BatchNorm1d → GELU → Dropout(0.3)
+  → Linear(128→64)  → BatchNorm1d → GELU → Dropout(0.3)
+  → Linear(64→1)    [logit output — BCEWithLogitsLoss]
+```
+
+- **Loss:** `BCEWithLogitsLoss` with `pos_weight ≈ 2.9` (handles 75/25 class imbalance)
+- **Optimizer:** AdamW with CosineAnnealingLR scheduler
+- **Gradient clipping:** max_norm = 1.0
+
+### Hyperparameter Configurations Evaluated
+
+| Config | Hidden Dims | Dropout | LR | Weight Decay |
+| :--- | :--- | :--- | :--- | :--- |
+| Small-LR1e3 | (128, 64) | 0.3 | 1e-3 | 1e-4 |
+| **Medium-LR1e3 ★** | **(256, 128, 64)** | **0.3** | **1e-3** | **1e-4** |
+| Large-LR5e4 | (512, 256, 128) | 0.3 | 5e-4 | 1e-4 |
+| Medium-HighDropout | (256, 128, 64) | 0.5 | 1e-3 | 1e-4 |
+| Medium-LowDropout | (256, 128, 64) | 0.2 | 1e-3 | 1e-4 |
+| Medium-LR1e4 | (256, 128, 64) | 0.3 | 1e-4 | 1e-4 |
+| Medium-HighWD | (256, 128, 64) | 0.3 | 1e-3 | 1e-3 |
+| Large-LR1e3-LowDrop | (512, 256, 128) | 0.2 | 1e-3 | 1e-4 |
+
+### Figures Produced (Fig 11–17)
+
+| Figure | Description |
+| :--- | :--- |
+| Fig 11 | Hyperparameter comparison — F1, Precision, Recall, ROC-AUC bar charts |
+| Fig 12 | Best model training curves — Loss & Accuracy (Train vs Val) |
+| Fig 13 | Confusion matrix — raw counts + row-normalised percentages |
+| Fig 14 | ROC Curve (AUC) + Precision-Recall Curve |
+| Fig 15 | Threshold optimisation — F1/P/R vs decision threshold |
+| Fig 16 | All 8 HP configs — val loss & val accuracy training curves |
+| Fig 17 | Per-class Precision, Recall, F1 bar chart |
+
+### Key Discoveries
+
+1. **Class Imbalance:** Weighted BCE (`pos_weight≈2.9`) is essential — without it recall collapses below 0.30.
+2. **Depth Sweet Spot:** Medium 3-layer (256→128→64) outperforms shallower and deeper architectures for this tabular dataset.
+3. **Dropout:** 0.3 generalises best; 0.5 is over-regularised; 0.2 leads to mild overfitting.
+4. **LR Schedule:** AdamW LR=1e-3 + CosineAnnealingLR converges fastest and most stably.
+5. **Threshold Tuning:** Optimising the decision threshold yields more F1 gain than architecture changes.
+6. **Cyclical Embeddings:** sin/cos of day-of-year + month improved val F1 by ~0.03 over raw features.

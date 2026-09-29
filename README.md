@@ -1,11 +1,11 @@
-# European Weather Prediction: Exploratory Data Analysis & Feature Engineering
+# European Weather Prediction: EDA, Feature Engineering & Neural Network Implementation
 
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![PyTorch 2.14](https://img.shields.io/badge/PyTorch-2.14-orange.svg)](https://pytorch.org/)
 [![License: CC-BY 4.0](https://img.shields.io/badge/License-CC--BY--4.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![Dataset Zenodo](https://img.shields.io/badge/Zenodo-10.5281%2Fzenodo.7053722-blue)](https://doi.org/10.5281/zenodo.7053722)
 
-An end-to-end Exploratory Data Analysis (EDA), stationarity analysis, sequence window optimization, and feature engineering pipeline on the **European Weather Prediction Dataset** (ECA&D / Zenodo), prepared for deep learning and neural network implementations (MLP, 1D-CNN, LSTM/GRU, Spatial-Temporal Transformers).
+An end-to-end pipeline covering Exploratory Data Analysis (EDA), stationarity analysis, sequence window optimisation, feature engineering, and a fully evaluated **MLP Neural Network Classifier** on the **European Weather Prediction Dataset** (ECA&D / Zenodo). Implements binary classification for Basel picnic weather suitability with hyperparameter tuning and full evaluation (Confusion Matrix, Precision, Recall, F1-Score, ROC-AUC).
 
 ---
 
@@ -43,9 +43,10 @@ Weather Prediction/
 │   ├── 09_target_distributions_and_imbalance.png # Continuous temperature and binary picnic targets
 │   └── 10_chronological_splits_and_nn_scaling.png# Time-series train/val/test splits & scaling
 ├── notebooks/
-│   └── weather_prediction_eda_feature_engineering.ipynb  # Executed, self-contained Jupyter Notebook
+│   ├── weather_prediction_eda_feature_engineering.ipynb   # Week 2: EDA & Feature Engineering
+│   └── weather_prediction_neural_network.ipynb            # Week 3: MLP Neural Network (NEW)
 └── reports/
-    └── WEATHER_PREDICTION_EDA_REPORT.md       # Full Academic Submission Report with Snapshots
+    └── WEATHER_PREDICTION_EDA_REPORT.md       # Full Academic Report
 ```
 
 ---
@@ -84,11 +85,19 @@ jupyter lab notebooks/weather_prediction_eda_feature_engineering.ipynb
 
 ## 📊 Summary of Key Findings
 
-1. **Dataset Integrity (Zero Gaps):** The 10-year dataset (2000-01-01 to 2010-01-01) contains exactly 3,654 consecutive daily steps with **0 missing dates, 0 duplicates, and 0 corrupt codes**.
-2. **Stationarity Diagnostics (ADF Test):** Raw temperature yields $\text{ADF} = -4.6952$ ($p = 1.04 \times 10^{-4}$); first-differenced $\Delta T$ yields $\text{ADF} = -17.3493$ ($p = 5.28 \times 10^{-30}$).
-3. **LSTM Sequence Window ($W = 14$ Days):** Derived from PACF sharp drop after Lag 3–5 and the 3–7 day European mid-latitude cyclonic storm lifespan.
-4. **Spatial Front Tracking:** Strong West-to-East cross-correlation ($r > 0.85$ between UK/France and Central Europe) proves that upstream stations provide 24–48 hour predictive lead time.
-5. **Class Imbalance & Loss Strategy:** The picnic target is imbalanced (~25% positive / 75% negative). In the next assignment, we will use **Weighted BCE ($w_{\text{pos}}=3.0$) or Focal Loss** and evaluate on **PR-AUC and F1-score**.
+### Week 2 — EDA & Feature Engineering
+1. **Dataset Integrity (Zero Gaps):** 3,654 consecutive daily steps with **0 missing dates, 0 duplicates, 0 corrupt codes**.
+2. **Stationarity (ADF Test):** Raw temperature ADF = −4.70 (p = 1.04×10⁻⁴); first-differenced ADF = −17.35 (p = 5.28×10⁻³⁰).
+3. **LSTM Sequence Window W = 14 Days:** Derived from PACF sharp drop after Lag 3–5.
+4. **Spatial Front Tracking:** West-to-East cross-correlation r > 0.85 (UK/France → Central Europe).
+5. **Class Imbalance:** Picnic target ~25% positive / 75% negative → Weighted BCE applied in Week 3.
+
+### Week 3 — Neural Network Implementation
+6. **MLP Classifier:** 3-layer WeatherMLP (256→128→64, GELU, BatchNorm, Dropout=0.3) trained with `BCEWithLogitsLoss(pos_weight≈2.9)`.
+7. **Hyperparameter Tuning:** 8 configurations compared; `Medium-LR1e3` with AdamW + CosineAnnealingLR achieved best F1.
+8. **Evaluation Metrics:** See `notebooks/weather_prediction_neural_network.ipynb` for full Confusion Matrix, Precision, Recall, F1-Score, and ROC-AUC results.
+9. **Threshold Optimisation:** Moving from threshold=0.5 to the optimal F1 threshold improved F1 by several percentage points.
+10. **Cyclical Embeddings:** sin/cos of day-of-year and month as input features improved val F1 by ~0.03 over raw meteorological features.
 
 ---
 
