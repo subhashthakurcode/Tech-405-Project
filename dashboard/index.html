@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Weather AI Engine | 14-Day LSTM</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="ambient-glow"></div>
+
+    <div class="main-shell">
+        <!-- Top Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-box">
+                    <i data-lucide="activity"></i>
+                </div>
+                <div>
+                    <h1>European Weather AI</h1>
+                    <p>Basel Station · Real-Time 14-Day LSTM Streamer</p>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <div class="mode-toggle-group">
+                    <button class="mode-btn active" id="btn-mode-stream">
+                        <span class="live-dot pulse"></span> Real Data Stream
+                    </button>
+                    <button class="mode-btn" id="btn-mode-manual">
+                        <i data-lucide="sliders"></i> Manual Sandbox
+                    </button>
+                </div>
+                <a href="login.html" class="auth-header-btn" title="Sign In or Sign Up" id="btn-nav-auth">
+                    <i data-lucide="user"></i>
+                    <span id="nav-user-label">Sign In</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- DYNAMIC PLAYBACK BAR (Connects directly to 366 days of real 2008 dataset) -->
+        <section class="card playback-bar" id="playback-card">
+            <div class="playback-controls">
+                <button class="play-btn" id="btn-play-pause" title="Play / Pause Stream">
+                    <i data-lucide="play" id="play-icon"></i>
+                </button>
+                <button class="step-btn" id="btn-prev-day" title="Previous Day">
+                    <i data-lucide="skip-back"></i>
+                </button>
+                <button class="step-btn" id="btn-next-day" title="Next Day">
+                    <i data-lucide="skip-forward"></i>
+                </button>
+
+                <div class="current-date-badge">
+                    <i data-lucide="calendar"></i>
+                    <span id="display-date">2008-05-15</span>
+                </div>
+            </div>
+
+            <!-- Timeline Scrubber -->
+            <div class="timeline-scrubber-wrap">
+                <input type="range" id="timeline-slider" min="14" max="365" value="135" class="scrubber">
+                <div class="timeline-labels">
+                    <span>Jan (Winter)</span>
+                    <span>Apr (Spring)</span>
+                    <span>Jul (Summer)</span>
+                    <span>Oct (Autumn)</span>
+                    <span>Dec</span>
+                </div>
+            </div>
+
+            <!-- Speed & Live Badge -->
+            <div class="playback-meta">
+                <div class="speed-selector">
+                    <button class="speed-btn active" data-speed="1000">1x</button>
+                    <button class="speed-btn" data-speed="500">2x</button>
+                    <button class="speed-btn" data-speed="250">4x</button>
+                </div>
+                <div class="stream-status" id="stream-status">
+                    <span class="status-indicator"></span>
+                    <span id="stream-text">PAUSED</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main 2-Column Dashboard Grid -->
+        <div class="dashboard-grid">
+            
+            <!-- LEFT: Weather Conditions (Streamed live or manually adjusted) -->
+            <section class="card input-card">
+                <div class="card-title-row">
+                    <h2>Current Weather State</h2>
+                    <span class="badge-sub" id="source-badge">Live Dataset Row</span>
+                </div>
+
+                <!-- 3 Quick Presets (For Manual Mode) -->
+                <div class="preset-row" id="preset-row">
+                    <button class="preset-chip" data-preset="sunny">
+                        <span>☀️</span> Sunny Spring
+                    </button>
+                    <button class="preset-chip" data-preset="rainy">
+                        <span>🌧️</span> Rainy Front
+                    </button>
+                    <button class="preset-chip" data-preset="mild">
+                        <span>⛅</span> Mild Autumn
+                    </button>
+                </div>
+
+                <!-- 4 Live Sliders / Meters -->
+                <div class="sliders-list">
+                    <!-- Temperature -->
+                    <div class="slider-item">
+                        <div class="slider-header">
+                            <label><i data-lucide="thermometer"></i> Mean Temperature</label>
+                            <span class="slider-value" id="val-temp">21.0°C</span>
+                        </div>
+                        <input type="range" id="input-temp" min="-5" max="35" step="0.5" value="21">
+                    </div>
+
+                    <!-- Rain -->
+                    <div class="slider-item">
+                        <div class="slider-header">
+                            <label><i data-lucide="cloud-rain"></i> Precipitation</label>
+                            <span class="slider-value" id="val-rain">0.0 mm</span>
+                        </div>
+                        <input type="range" id="input-rain" min="0" max="30" step="0.5" value="0">
+                    </div>
+
+                    <!-- Clouds -->
+                    <div class="slider-item">
+                        <div class="slider-header">
+                            <label><i data-lucide="cloud"></i> Cloud Cover</label>
+                            <span class="slider-value" id="val-cloud">25%</span>
+                        </div>
+                        <input type="range" id="input-cloud" min="0" max="100" step="5" value="25">
+                    </div>
+
+                    <!-- Wind / Pressure -->
+                    <div class="slider-item">
+                        <div class="slider-header">
+                            <label><i data-lucide="gauge"></i> Air Pressure</label>
+                            <span class="slider-value" id="val-press">1018 hPa</span>
+                        </div>
+                        <input type="range" id="input-press" min="980" max="1040" step="1" value="1018">
+                    </div>
+                </div>
+
+                <!-- Live Ground Truth vs Prediction Comparison Banner -->
+                <div class="ground-truth-banner" id="ground-truth-banner">
+                    <div class="gt-header">
+                        <i data-lucide="database"></i>
+                        <span>Historical Ground Truth (Dataset Label)</span>
+                    </div>
+                    <div class="gt-content">
+                        <span>Actual Picnic Outcome:</span>
+                        <strong id="gt-label" class="badge-gt">Checking...</strong>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT: The 3 Core Live Predictions -->
+            <section class="card results-card">
+                <div class="card-title-row">
+                    <h2>Tomorrow's AI Predictions (T+1)</h2>
+                    <span class="badge-sub">LSTM Output</span>
+                </div>
+
+                <!-- 3 Clear Prediction Cards -->
+                <div class="predictions-stack">
+                    
+                    <!-- 1. Temperature Forecast (Regression T+1) -->
+                    <div class="pred-tile">
+                        <div class="pred-tile-header">
+                            <div class="pred-tile-title">
+                                <i data-lucide="thermometer" class="icon-blue"></i>
+                                <span>Tomorrow's Temperature</span>
+                            </div>
+                            <span class="target-chip">Regression Target</span>
+                        </div>
+                        <div class="pred-tile-content">
+                            <div class="pred-big-val" id="pred-temp">22.4°C</div>
+                            <div class="pred-sub-info">
+                                <div class="range-text" id="pred-temp-range">Low 15°C · High 26°C</div>
+                                <div class="delta-tag text-green" id="pred-temp-delta">+1.4°C vs today</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Rain Probability (Classification R+1) -->
+                    <div class="pred-tile">
+                        <div class="pred-tile-header">
+                            <div class="pred-tile-title">
+                                <i data-lucide="cloud-rain" class="icon-cyan"></i>
+                                <span>Rain Likelihood</span>
+                            </div>
+                            <span class="target-chip">Binary Target</span>
+                        </div>
+                        <div class="pred-tile-content">
+                            <div class="pred-big-val" id="pred-rain-pct">12%</div>
+                            <div class="pred-sub-info">
+                                <div class="range-text" id="pred-rain-label">Dry & Clear Skies ☀️</div>
+                                <div class="delta-tag" id="pred-rain-vol">Expected: 0.0 mm</div>
+                            </div>
+                        </div>
+                        <div class="mini-bar-bg">
+                            <div class="mini-bar-fill fill-cyan" id="bar-rain" style="width: 12%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Picnic Suitability (Classification Y+1) -->
+                    <div class="pred-tile">
+                        <div class="pred-tile-header">
+                            <div class="pred-tile-title">
+                                <i data-lucide="sun-medium" class="icon-green"></i>
+                                <span>Picnic Suitability</span>
+                            </div>
+                            <span class="target-chip">Binary Target</span>
+                        </div>
+                        <div class="pred-tile-content">
+                            <div class="pred-big-val" id="pred-picnic-pct">89%</div>
+                            <div class="pred-sub-info">
+                                <div class="badge-status status-good" id="pred-picnic-badge">Ideal for Picnic 🧺</div>
+                                <div class="verdict-note" id="pred-picnic-note">Warm & dry. Excellent conditions.</div>
+                            </div>
+                        </div>
+                        <div class="mini-bar-bg">
+                            <div class="mini-bar-fill fill-green" id="bar-picnic" style="width: 89%;"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </div>
+
+        <!-- BOTTOM: Dynamic 14-Day Lookback Sequence Chart -->
+        <section class="card chart-card">
+            <div class="chart-header">
+                <div>
+                    <h2>Dynamic 14-Day Sequence Window (LSTM Input)</h2>
+                    <p class="chart-desc">Watching the sliding window advance in real-time as days progress $(W = 14\text{ days})$</p>
+                </div>
+                
+                <div class="chart-pill-selector">
+                    <button class="chart-pill active" data-metric="temp">Temperature (°C)</button>
+                    <button class="chart-pill" data-metric="rain">Rain (mm)</button>
+                    <button class="chart-pill" data-metric="cloud">Cloud (%)</button>
+                    <button class="chart-pill" data-metric="press">Pressure (hPa)</button>
+                </div>
+            </div>
+            
+            <div class="chart-box">
+                <canvas id="sequence-chart"></canvas>
+            </div>
+        </section>
+
+        <!-- Minimal Footer -->
+        <footer class="app-footer">
+            <p>ECA&D European Weather Dataset · 366 Real Daily Records · PyTorch LSTM Sequence Architecture</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
